@@ -1,0 +1,16 @@
+{
+  "name": "Savi's Woodshop",
+  "short_name": "Woodshop",
+  "description": "Artisanal picture frame builder, cut list generator, and workshop inventory tracker.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f0e8",
+  "theme_color": "#3d2b1a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

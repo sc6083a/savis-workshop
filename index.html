@@ -1,11 +1,703 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Savi's Workshop</title>
+  <title>Savi's Woodshop</title>
+  <meta name="description" content="Savi's Woodshop — artisanal picture frame builder, cut list generator, and workshop inventory tracker." />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#3d2b1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>Welcome to Savi's Workshop</h1>
+
+<div class="app-shell">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="site-header" role="banner">
+    <button class="header-brand" onclick="App.nav('dashboard')" aria-label="Go to dashboard">
+      <div class="header-logo" aria-hidden="true">🪵</div>
+      <div class="header-brand-text">
+        <span class="header-title">Savi's Woodshop</span>
+        <span class="header-sub">Measure twice, cut once.</span>
+      </div>
+    </button>
+    <div class="header-actions">
+      <div class="header-unit-toggle" role="group" aria-label="Unit system">
+        <button id="unit-in-btn" class="active" onclick="App.setUnits('in')" aria-pressed="true">in</button>
+        <button id="unit-cm-btn" onclick="App.setUnits('cm')" aria-pressed="false">cm</button>
+      </div>
+      <button class="icon-btn" id="theme-toggle-btn" onclick="App.toggleTheme()" aria-label="Toggle dark mode" title="Toggle dark mode">🌙</button>
+    </div>
+  </header>
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" role="navigation" aria-label="Main navigation">
+    <nav class="sidebar-nav">
+      <button class="nav-item active" id="nav-dashboard" onclick="App.nav('dashboard')" aria-current="page">
+        <div class="nav-icon" aria-hidden="true">🏠</div>
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-item" id="nav-builder" onclick="App.nav('builder')">
+        <div class="nav-icon" aria-hidden="true">📐</div>
+        <span class="nav-label">Frame Builder</span>
+      </button>
+      <button class="nav-item" id="nav-projects" onclick="App.nav('projects')">
+        <div class="nav-icon" aria-hidden="true">📋</div>
+        <span class="nav-label">My Projects</span>
+        <span class="nav-badge" id="projects-badge" aria-label="projects count">0</span>
+      </button>
+      <button class="nav-item" id="nav-workshop" onclick="App.nav('workshop')">
+        <div class="nav-icon" aria-hidden="true">🛠️</div>
+        <span class="nav-label">Workshop</span>
+        <span class="nav-badge" id="workshop-badge" aria-label="inventory count">0</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div>Savi's Woodshop</div>
+      <div style="margin-top:4px;font-size:0.7rem;opacity:0.7;">"Measure twice, cut once."</div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN CONTENT ===================== -->
+  <main class="main-content" role="main">
+
+    <!-- ==================== DASHBOARD ==================== -->
+    <div class="screen active" id="screen-dashboard">
+      <div class="container-wide">
+
+        <div class="dashboard-hero">
+          <div class="dashboard-hero-eyebrow">🪵 Welcome back</div>
+          <h1 class="dashboard-hero-title">What are we<br>building today?</h1>
+          <p class="dashboard-hero-sub">Plan, measure, cut, build. Your personal workshop companion for beautiful picture frames.</p>
+          <div class="dashboard-cta-row">
+            <button class="btn btn-primary btn-xl" onclick="App.nav('builder')">
+              📐 New Frame Project
+            </button>
+            <button class="btn btn-secondary btn-lg" onclick="App.nav('projects')">
+              📋 View All Projects
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Projects -->
+        <div id="recent-section">
+          <div class="section-header">
+            <h2 class="section-title">Recent Projects</h2>
+            <button class="section-link" onclick="App.nav('projects')">See all →</button>
+          </div>
+          <div class="recent-strip" id="recent-strip">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <!-- Workshop at a Glance -->
+        <div class="section-header" style="margin-top:0">
+          <h2 class="section-title">Workshop Inventory</h2>
+          <button class="section-link" onclick="App.nav('workshop')">Manage →</button>
+        </div>
+        <div class="workshop-glance" id="workshop-glance">
+          <div class="glance-item" onclick="App.navWorkshop('owned')">
+            <div class="glance-num" id="glance-owned">0</div>
+            <div class="glance-label">Items Owned</div>
+          </div>
+          <div class="glance-item" onclick="App.navWorkshop('needed')">
+            <div class="glance-num" id="glance-needed">0</div>
+            <div class="glance-label">Need to Buy</div>
+          </div>
+          <div class="glance-item" onclick="App.navWorkshop('wishlist')">
+            <div class="glance-num" id="glance-wishlist">0</div>
+            <div class="glance-label">On Wishlist</div>
+          </div>
+        </div>
+
+        <!-- Tip of the Day -->
+        <div class="tip-card">
+          <div class="tip-icon-wrap" aria-hidden="true">💡</div>
+          <div class="tip-body">
+            <div class="tip-eyebrow">Tip of the Day</div>
+            <div class="tip-text" id="tip-text">Loading tip…</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== FRAME BUILDER ==================== -->
+    <div class="screen" id="screen-builder">
+      <div class="container">
+
+        <!-- Editing Banner -->
+        <div class="editing-banner" id="editing-banner" role="status">
+          <span style="font-size:18px">✏️</span>
+          <span class="editing-banner-text">Editing: <strong class="editing-banner-name" id="editing-name"></strong></span>
+          <button class="btn btn-ghost btn-sm" onclick="Builder.clearEdit()">Start New</button>
+        </div>
+
+        <div class="builder-step-section">
+          <div class="builder-step-header">
+            <div class="builder-step-num" aria-hidden="true">1</div>
+            <h2 class="builder-step-title">Project Setup</h2>
+          </div>
+
+          <!-- Project Name -->
+          <div class="card" style="margin-bottom:var(--s4)">
+            <div class="card-header">
+              <div class="card-icon" aria-hidden="true">🏷️</div>
+              <h3 class="card-title">Project Name</h3>
+            </div>
+            <div class="proj-name-wrap">
+              <input type="text" id="proj-name" placeholder="e.g. Living Room Gallery Frame" aria-label="Project name" autocomplete="off" />
+            </div>
+          </div>
+
+          <!-- Frame Type -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon" aria-hidden="true">🖼️</div>
+              <h3 class="card-title">Frame Type</h3>
+            </div>
+            <div class="frame-type-grid" role="radiogroup" aria-label="Frame type">
+
+              <div class="frame-type-card selected" data-val="regular" onclick="Builder.setFrameType('regular',this)" role="radio" aria-checked="true" tabindex="0">
+                <svg width="80" height="50" viewBox="0 0 80 50" aria-hidden="true">
+                  <rect x="5" y="5" width="70" height="40" fill="none" stroke="currentColor" stroke-width="5" rx="2"/>
+                  <rect x="14" y="14" width="52" height="22" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+                </svg>
+                <div class="frame-type-name">Regular Frame</div>
+                <div class="frame-type-desc">Photo, glass &amp; backing in a rabbet ledge</div>
+              </div>
+
+              <div class="frame-type-card" data-val="glassless" onclick="Builder.setFrameType('glassless',this)" role="radio" aria-checked="false" tabindex="0">
+                <svg width="80" height="50" viewBox="0 0 80 50" aria-hidden="true">
+                  <rect x="5" y="5" width="70" height="40" fill="none" stroke="currentColor" stroke-width="5" rx="2"/>
+                  <rect x="14" y="14" width="52" height="22" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+                  <line x1="14" y1="14" x2="66" y2="36" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="4,3"/>
+                </svg>
+                <div class="frame-type-name">Glassless</div>
+                <div class="frame-type-desc">Open face — no glass, less glare</div>
+              </div>
+
+              <div class="frame-type-card" data-val="floating" onclick="Builder.setFrameType('floating',this)" role="radio" aria-checked="false" tabindex="0">
+                <svg width="80" height="50" viewBox="0 0 80 50" aria-hidden="true">
+                  <rect x="3" y="3" width="74" height="44" fill="none" stroke="currentColor" stroke-width="6" rx="2"/>
+                  <rect x="18" y="12" width="44" height="26" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+                  <rect x="12" y="9" width="5" height="3" fill="var(--accent)" opacity="0.6"/>
+                </svg>
+                <div class="frame-type-name">Floating Frame</div>
+                <div class="frame-type-desc">Canvas floats with visible gap</div>
+              </div>
+
+            </div>
+            <p class="form-hint" id="frame-type-note">Traditional frame with a ledge (rabbet) to hold photo, glass &amp; backing.</p>
+          </div>
+        </div>
+
+        <div class="builder-step-divider"></div>
+
+        <!-- STEP 2 -->
+        <div class="builder-step-section">
+          <div class="builder-step-header">
+            <div class="builder-step-num" aria-hidden="true">2</div>
+            <h2 class="builder-step-title">Dimensions &amp; Options</h2>
+          </div>
+
+          <!-- Photo Config -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon" aria-hidden="true">📷</div>
+              <h3 class="card-title">Photo / Artwork</h3>
+            </div>
+
+            <div class="form-row" style="margin-bottom:var(--s4)">
+              <div class="form-group">
+                <label>Layout</label>
+                <div class="toggle-group" id="tg-layout" role="radiogroup">
+                  <button class="tog on" data-val="single" onclick="Builder.setToggle('tg-layout',this);Builder.updatePhotoLayout()" aria-pressed="true">Single Photo</button>
+                  <button class="tog" data-val="multiple" onclick="Builder.setToggle('tg-layout',this);Builder.updatePhotoLayout()" aria-pressed="false">Multiple Photos</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Multi controls -->
+            <div id="multi-controls" style="display:none" aria-hidden="true">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="photo-count">Number of Photos</label>
+                  <select id="photo-count" onchange="Builder.renderPhotoRows()" aria-label="Number of photos">
+                    <option value="2">2 photos</option>
+                    <option value="3">3 photos</option>
+                    <option value="4">4 photos</option>
+                    <option value="5">5 photos</option>
+                    <option value="6">6 photos</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Arrangement</label>
+                  <div class="toggle-group" id="tg-arrangement" role="radiogroup">
+                    <button class="tog on" data-val="horizontal" onclick="Builder.setToggle('tg-arrangement',this)" aria-pressed="true">Side by Side</button>
+                    <button class="tog" data-val="vertical" onclick="Builder.setToggle('tg-arrangement',this)" aria-pressed="false">Stacked</button>
+                    <button class="tog" data-val="grid" onclick="Builder.setToggle('tg-arrangement',this)" aria-pressed="false">Grid</button>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="divider-width">Divider Width <span id="divider-unit-label">(in)</span></label>
+                  <input type="number" id="divider-width" value="0.75" min="0.25" max="3" step="0.25" aria-label="Divider width" />
+                  <span class="form-hint">Space between photos</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Photo rows -->
+            <div id="photo-rows" aria-label="Photo dimensions">
+              <!-- Rendered by JS -->
+            </div>
+
+            <!-- Floating gap -->
+            <div id="float-options" style="display:none" aria-hidden="true">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="float-gap">Float Gap <span id="float-gap-unit-label">(in)</span></label>
+                  <input type="number" id="float-gap" value="0.25" min="0.125" max="1.5" step="0.125" />
+                  <span class="form-hint">Visible space between canvas edge and frame interior</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Frame Options -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon" aria-hidden="true">🔧</div>
+              <h3 class="card-title">Frame Options</h3>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group full">
+                <label>Frame Face Width</label>
+                <div class="toggle-group" id="tg-width-mode" role="radiogroup" style="margin-bottom:var(--s3)">
+                  <button class="tog on" data-val="auto" onclick="Builder.setToggle('tg-width-mode',this);Builder.toggleCustomWidth()" aria-pressed="true">Auto-Suggest</button>
+                  <button class="tog" data-val="custom" onclick="Builder.setToggle('tg-width-mode',this);Builder.toggleCustomWidth()" aria-pressed="false">Custom</button>
+                </div>
+                <div id="custom-width-grp" style="display:none">
+                  <input type="number" id="custom-width" value="2.5" min="0.75" max="6" step="0.125" placeholder="e.g. 2.5" aria-label="Custom frame face width" />
+                </div>
+                <span class="form-hint" id="width-hint">Width calculated using the golden-ratio guideline for best aesthetics.</span>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group full">
+                <label>Joint Method</label>
+                <div class="toggle-group" id="tg-joint" role="radiogroup" style="margin-bottom:var(--s3)">
+                  <button class="tog on" data-val="miter" onclick="Builder.setToggle('tg-joint',this);Builder.updateJointNote()" aria-pressed="true">45° Miter + Glue</button>
+                  <button class="tog" data-val="butt" onclick="Builder.setToggle('tg-joint',this);Builder.updateJointNote()" aria-pressed="false">Butt Joint + Pocket Holes</button>
+                </div>
+                <span class="form-hint" id="joint-note">Classic look — invisible joints on the frame face. Uses band clamp + wood glue.</span>
+                <button class="disclosure-btn" onclick="Builder.toggleDisclosure('joint-help')" aria-expanded="false" id="joint-help-btn">
+                  ▾ Which should I choose?
+                </button>
+                <div class="disclosure-content" id="joint-help">
+                  <div class="info-box" style="margin-top:var(--s3)">
+                    <span class="info-icon">📐</span>
+                    <div>
+                      <strong>Miter joints</strong> look professional with no visible seam, but require precise 45° cuts and a band clamp. Best if you have a miter saw set up correctly.<br><br>
+                      <strong>Butt joints</strong> are more forgiving — straight cuts and pocket screws. The joint is slightly visible on corners (usually hidden at the back). Great for beginners or thick frames.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group full">
+                <label>Wood Species</label>
+                <div class="toggle-group" id="tg-species" role="radiogroup" style="flex-wrap:wrap">
+                  <button class="species-option on" data-val="pine" onclick="Builder.setToggle('tg-species',this)" aria-pressed="true">
+                    <span class="species-swatch" style="background:#d4a85a"></span>
+                    <div>
+                      <div class="species-name">Pine</div>
+                      <div class="species-price" id="price-pine">$1.45/ft</div>
+                    </div>
+                  </button>
+                  <button class="species-option" data-val="poplar" onclick="Builder.setToggle('tg-species',this)" aria-pressed="false">
+                    <span class="species-swatch" style="background:#c8a870"></span>
+                    <div>
+                      <div class="species-name">Poplar</div>
+                      <div class="species-price" id="price-poplar">$1.85/ft</div>
+                    </div>
+                  </button>
+                  <button class="species-option" data-val="oak" onclick="Builder.setToggle('tg-species',this)" aria-pressed="false">
+                    <span class="species-swatch" style="background:#a07840"></span>
+                    <div>
+                      <div class="species-name">Oak</div>
+                      <div class="species-price" id="price-oak">$2.80/ft</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group full">
+                <label>Material Type</label>
+                <div class="toggle-group" id="tg-material-type" role="radiogroup" style="margin-bottom:var(--s3)">
+                  <button class="tog on" data-val="lumber" onclick="Builder.setToggle('tg-material-type',this);Builder.updateMaterialNote()" aria-pressed="true">Standard Lumber</button>
+                  <button class="tog" data-val="moulding" onclick="Builder.setToggle('tg-material-type',this);Builder.updateMaterialNote()" aria-pressed="false">Picture Frame Moulding</button>
+                </div>
+                <span class="form-hint" id="material-type-note">Dimensional boards (1×2, 1×3, etc.). Backer strips needed to create the rabbet ledge.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mat & Finishing (hidden for floating) -->
+          <div class="card" id="mat-card">
+            <div class="card-header">
+              <div class="card-icon" aria-hidden="true">🗂️</div>
+              <h3 class="card-title">Mat Board</h3>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Include Mat Board?</label>
+                <div class="toggle-group" id="tg-mat" role="radiogroup">
+                  <button class="tog on" data-val="no" onclick="Builder.setToggle('tg-mat',this);Builder.toggleMatOptions()" aria-pressed="true">No Mat</button>
+                  <button class="tog" data-val="yes" onclick="Builder.setToggle('tg-mat',this);Builder.toggleMatOptions()" aria-pressed="false">Include Mat</button>
+                </div>
+              </div>
+            </div>
+            <div id="mat-options" style="display:none" aria-hidden="true">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Border Width</label>
+                  <div class="toggle-group" id="tg-mat-mode" role="radiogroup">
+                    <button class="tog on" data-val="auto" onclick="Builder.setToggle('tg-mat-mode',this);Builder.toggleMatBorder()" aria-pressed="true">Auto-Suggest</button>
+                    <button class="tog" data-val="custom" onclick="Builder.setToggle('tg-mat-mode',this);Builder.toggleMatBorder()" aria-pressed="false">Custom</button>
+                  </div>
+                </div>
+                <div class="form-group" id="mat-border-grp" style="display:none">
+                  <label for="mat-border">Border Width <span class="mat-unit-label">(in)</span></label>
+                  <input type="number" id="mat-border" value="2.5" min="0.5" max="6" step="0.25" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Weighted Bottom?</label>
+                  <div class="toggle-group" id="tg-weighted" role="radiogroup">
+                    <button class="tog on" data-val="no" onclick="Builder.setToggle('tg-weighted',this)" aria-pressed="true">Equal Borders</button>
+                    <button class="tog" data-val="yes" onclick="Builder.setToggle('tg-weighted',this)" aria-pressed="false">Weighted Bottom (+0.5")</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="mat-reveal">Mat Reveal <span class="mat-unit-label">(in)</span></label>
+                  <input type="number" id="mat-reveal" value="0.25" min="0.125" max="0.5" step="0.125" />
+                  <span class="form-hint">Amount mat overlaps photo edge</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /step 2 -->
+
+        <!-- Calculate CTA -->
+        <div style="text-align:center;padding:var(--s5) 0 var(--s7)">
+          <button class="btn btn-primary btn-xl" id="calculate-btn" onclick="Builder.calculate()">
+            📏 Calculate Frame &amp; Cut List
+          </button>
+          <div class="form-hint" style="margin-top:var(--s3)" id="calc-status"></div>
+        </div>
+
+        <!-- ==================== RESULTS ==================== -->
+        <div class="results-panel" id="results-panel" aria-live="polite">
+
+          <div class="builder-step-divider"></div>
+          <div class="builder-step-header" style="margin-bottom:var(--s5)">
+            <div class="builder-step-num" aria-hidden="true">3</div>
+            <h2 class="builder-step-title">Results</h2>
+          </div>
+
+          <!-- Results tabs -->
+          <div class="tabs" role="tablist" aria-label="Results sections" id="results-tabs-bar">
+            <button class="tab-btn-inner active" role="tab" aria-selected="true" aria-controls="tab-summary" id="rtab-summary" onclick="Builder.switchResultTab('summary',this)">📊 Summary</button>
+            <button class="tab-btn-inner" role="tab" aria-selected="false" aria-controls="tab-cutlist" id="rtab-cutlist" onclick="Builder.switchResultTab('cutlist',this)">✂️ Cut List</button>
+            <button class="tab-btn-inner" role="tab" aria-selected="false" aria-controls="tab-materials" id="rtab-materials" onclick="Builder.switchResultTab('materials',this)">🪵 Materials</button>
+            <button class="tab-btn-inner" role="tab" aria-selected="false" aria-controls="tab-hardware" id="rtab-hardware" onclick="Builder.switchResultTab('hardware',this)">🔩 Hardware</button>
+            <button class="tab-btn-inner" role="tab" aria-selected="false" aria-controls="tab-build-guide" id="rtab-guide" onclick="Builder.switchResultTab('build-guide',this)">🔨 Build Guide</button>
+          </div>
+
+          <!-- Tab: Summary -->
+          <div class="tab-panel-inner active" id="tab-summary" role="tabpanel" aria-labelledby="rtab-summary">
+            <div class="stat-grid" id="result-stats"><!-- filled by JS --></div>
+            <div class="frame-diagram-wrap" id="result-diagram"><!-- filled by JS --></div>
+            <div id="result-flags"><!-- filled by JS --></div>
+
+            <!-- Save bar -->
+            <div class="card" style="margin-top:var(--s5)">
+              <div class="card-header" style="border-bottom:none;padding-bottom:0;margin-bottom:var(--s3)">
+                <div class="card-icon" aria-hidden="true">💾</div>
+                <h3 class="card-title">Save This Project</h3>
+              </div>
+              <div class="form-row" style="margin-bottom:var(--s3)">
+                <div class="form-group full">
+                  <label for="save-notes">Notes (optional)</label>
+                  <textarea id="save-notes" rows="2" placeholder="e.g. Gift for Mom, oak stained in Early American…" style="resize:vertical"></textarea>
+                </div>
+              </div>
+              <div style="display:flex;gap:var(--s3);flex-wrap:wrap">
+                <button class="btn btn-sage" id="save-btn" onclick="Builder.saveProject()">💾 Save Project</button>
+                <button class="btn btn-secondary" id="save-copy-btn" style="display:none" onclick="Builder.saveAsCopy()">📄 Save as New Copy</button>
+                <button class="btn btn-ghost btn-sm" onclick="window.print()" title="Print cut list">🖨️ Print</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Cut List -->
+          <div class="tab-panel-inner" id="tab-cutlist" role="tabpanel" aria-labelledby="rtab-cutlist">
+            <div id="result-cutlist"><!-- filled by JS --></div>
+          </div>
+
+          <!-- Tab: Materials -->
+          <div class="tab-panel-inner" id="tab-materials" role="tabpanel" aria-labelledby="rtab-materials">
+            <div id="result-materials"><!-- filled by JS --></div>
+          </div>
+
+          <!-- Tab: Hardware -->
+          <div class="tab-panel-inner" id="tab-hardware" role="tabpanel" aria-labelledby="rtab-hardware">
+            <div id="result-hardware"><!-- filled by JS --></div>
+          </div>
+
+          <!-- Tab: Build Guide -->
+          <div class="tab-panel-inner" id="tab-build-guide" role="tabpanel" aria-labelledby="rtab-guide">
+            <div id="result-guide"><!-- filled by JS --></div>
+          </div>
+
+        </div><!-- /results-panel -->
+
+      </div>
+    </div><!-- /screen-builder -->
+
+    <!-- ==================== PROJECTS GALLERY ==================== -->
+    <div class="screen" id="screen-projects">
+      <div class="container-wide">
+        <div class="projects-header">
+          <h1 class="h2">My Projects</h1>
+          <div style="display:flex;gap:var(--s3);align-items:center;flex-wrap:wrap">
+            <select class="sort-select" id="projects-sort" onchange="Projects.render()" aria-label="Sort projects">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="type">By Frame Type</option>
+              <option value="status">By Build Status</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="App.nav('builder')">+ New Project</button>
+          </div>
+        </div>
+        <div class="projects-grid" id="projects-grid"><!-- filled by JS --></div>
+      </div>
+    </div>
+
+    <!-- ==================== WORKSHOP ==================== -->
+    <div class="screen" id="screen-workshop">
+      <div class="container-wide">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s5);flex-wrap:wrap;gap:var(--s3)">
+          <h1 class="h2">Workshop</h1>
+          <div style="display:flex;gap:var(--s3);flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm" id="shopping-list-btn" onclick="Workshop.showShoppingList()">
+              🛒 Shopping List <span id="shopping-count" class="nav-badge" style="margin-left:4px">0</span>
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="Workshop.showAddModal()">+ Add Item</button>
+          </div>
+        </div>
+
+        <!-- Stats bar -->
+        <div class="ws-stats-bar" id="ws-stats-bar"><!-- filled by JS --></div>
+
+        <!-- Sub-tabs -->
+        <div class="workshop-sub-tabs" role="tablist" aria-label="Workshop sections">
+          <button class="ws-sub-btn active" role="tab" aria-selected="true" id="wstab-all" onclick="Workshop.setTab('all',this)">All</button>
+          <button class="ws-sub-btn" role="tab" aria-selected="false" id="wstab-tools" onclick="Workshop.setTab('tools',this)">Tools</button>
+          <button class="ws-sub-btn" role="tab" aria-selected="false" id="wstab-supplies" onclick="Workshop.setTab('supplies',this)">Supplies</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="ws-toolbar">
+          <div class="ws-search-wrap">
+            <span class="ws-search-icon" aria-hidden="true">🔍</span>
+            <input type="text" id="ws-search" placeholder="Search tools &amp; supplies…" oninput="Workshop.render()" aria-label="Search workshop items" />
+          </div>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="ws-filter-row" id="ws-filter-row" role="group" aria-label="Filter by category"><!-- filled by JS --></div>
+
+        <!-- Items -->
+        <div id="ws-content"><!-- filled by JS --></div>
+
+      </div>
+    </div>
+
+  </main><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+<!-- ===================== BOTTOM NAV (mobile) ===================== -->
+<nav class="bottom-nav" aria-label="Mobile navigation">
+  <div class="bottom-nav-inner">
+    <button class="bottom-nav-btn active" id="bn-dashboard" onclick="App.nav('dashboard')" aria-label="Dashboard">
+      <span class="bn-icon" aria-hidden="true">🏠</span>
+      <span>Home</span>
+    </button>
+    <button class="bottom-nav-btn" id="bn-builder" onclick="App.nav('builder')" aria-label="Frame Builder">
+      <span class="bn-icon" aria-hidden="true">📐</span>
+      <span>Builder</span>
+    </button>
+    <button class="bottom-nav-btn" id="bn-projects" onclick="App.nav('projects')" aria-label="My Projects">
+      <span class="bn-icon" aria-hidden="true">📋</span>
+      <span>Projects</span>
+    </button>
+    <button class="bottom-nav-btn" id="bn-workshop" onclick="App.nav('workshop')" aria-label="Workshop">
+      <span class="bn-icon" aria-hidden="true">🛠️</span>
+      <span>Workshop</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Add/Edit Workshop Item Modal -->
+<div class="modal-overlay" id="modal-add-item" role="dialog" aria-modal="true" aria-labelledby="modal-add-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-add-title">Add Workshop Item</h2>
+      <button class="modal-close" onclick="Workshop.closeAddModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="form-group" style="margin-bottom:var(--s4)">
+      <label for="ws-item-name">Item Name</label>
+      <input type="text" id="ws-item-name" placeholder="e.g. Wood Glue, Miter Saw…" autocomplete="off" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="ws-item-category">Category</label>
+        <select id="ws-item-category">
+          <option value="Power Tools">Power Tools</option>
+          <option value="Hand Tools">Hand Tools</option>
+          <option value="Clamps &amp; Vises">Clamps &amp; Vises</option>
+          <option value="Fasteners">Fasteners</option>
+          <option value="Adhesives &amp; Fillers">Adhesives &amp; Fillers</option>
+          <option value="Abrasives">Abrasives</option>
+          <option value="Frame Hardware">Frame Hardware</option>
+          <option value="Lumber">Lumber</option>
+          <option value="Finishing">Finishing</option>
+          <option value="Glass &amp; Backing">Glass &amp; Backing</option>
+          <option value="Other Supplies">Other Supplies</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Item Type</label>
+        <div class="toggle-group" id="tg-item-type" role="radiogroup">
+          <button class="tog" data-val="tool" onclick="Workshop.setItemType('tool',this)" aria-pressed="false">Tool</button>
+          <button class="tog on" data-val="supply" onclick="Workshop.setItemType('supply',this)" aria-pressed="true">Supply</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="ws-item-qty">Quantity</label>
+        <input type="number" id="ws-item-qty" value="1" min="0" step="1" />
+      </div>
+      <div class="form-group">
+        <label for="ws-item-unit">Unit</label>
+        <input type="text" id="ws-item-unit" value="piece" placeholder="piece, bottle, box…" />
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:var(--s4)">
+      <label>Status</label>
+      <div class="toggle-group" id="tg-item-status" role="radiogroup">
+        <button class="tog on" data-val="owned" onclick="Workshop.setItemToggle('tg-item-status',this)" aria-pressed="true">✓ I Own This</button>
+        <button class="tog" data-val="needed" onclick="Workshop.setItemToggle('tg-item-status',this)" aria-pressed="false">○ Need to Buy</button>
+        <button class="tog" data-val="wishlist" onclick="Workshop.setItemToggle('tg-item-status',this)" aria-pressed="false">⭐ Wishlist</button>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:var(--s4)">
+      <label for="ws-item-notes">Notes (optional)</label>
+      <input type="text" id="ws-item-notes" placeholder="Brand, size, where to buy…" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="Workshop.closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" id="ws-save-btn" onclick="Workshop.saveItem()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="modal-delete-confirm" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-delete-title">Delete Project?</h2>
+      <button class="modal-close" onclick="App.closeModal('modal-delete-confirm')" aria-label="Close">✕</button>
+    </div>
+    <p style="color:var(--on-muted);font-size:0.9rem;margin-bottom:var(--s5)">
+      Are you sure you want to delete <strong id="delete-project-name" style="color:var(--on-bg)"></strong>? This cannot be undone.
+    </p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-delete-confirm')">Cancel</button>
+      <button class="btn btn-danger" id="delete-confirm-btn" onclick="Projects.confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Project Detail Modal -->
+<div class="modal-overlay" id="modal-project-detail" role="dialog" aria-modal="true" aria-labelledby="modal-detail-title">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-detail-title">Project Details</h2>
+      <button class="modal-close" onclick="App.closeModal('modal-project-detail')" aria-label="Close">✕</button>
+    </div>
+    <div id="modal-detail-content"><!-- filled by JS --></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-project-detail')">Close</button>
+      <button class="btn btn-secondary" id="detail-duplicate-btn" onclick="Projects.duplicateFromModal()">📄 Duplicate</button>
+      <button class="btn btn-primary" id="detail-edit-btn" onclick="Projects.loadIntoBuilder()">✏️ Edit in Builder</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shopping List Modal -->
+<div class="modal-overlay" id="modal-shopping-list" role="dialog" aria-modal="true" aria-labelledby="modal-shopping-title">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-shopping-title">🛒 Shopping List</h2>
+      <button class="modal-close" onclick="App.closeModal('modal-shopping-list')" aria-label="Close">✕</button>
+    </div>
+    <div id="shopping-list-content"><!-- filled by JS --></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-shopping-list')">Close</button>
+      <button class="btn btn-secondary" onclick="Workshop.copyShoppingList()">📋 Copy to Clipboard</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Draft Restore Banner -->
+<div class="modal-overlay" id="modal-restore-draft" role="dialog" aria-modal="true" aria-labelledby="modal-restore-title" style="align-items:flex-end;padding-bottom:var(--s6)">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-restore-title">Restore unsaved work?</h2>
+      <button class="modal-close" onclick="Builder.discardDraft()" aria-label="Close">✕</button>
+    </div>
+    <p style="color:var(--on-muted);font-size:0.9rem;margin-bottom:var(--s4)">You have an unsaved frame project from a previous session. Would you like to restore it?</p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="Builder.discardDraft()">Discard</button>
+      <button class="btn btn-primary" onclick="Builder.restoreDraft()">Restore</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TOAST CONTAINER ===================== -->
+<div class="toast-container" id="toast-container" role="status" aria-live="polite" aria-atomic="false"></div>
+
+<script src="app.js"></script>
 </body>
 </html>
